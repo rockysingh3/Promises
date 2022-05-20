@@ -52,32 +52,87 @@ class MyPromise {
  
 
     #onSuccess(value) {
-        // make sure you can't call resolve multipletimes in the same promise
-        if (this.#state !== State.PENDING) return;
+        /* once this function resolves the micro task will
+        sure this will run after the current task has completed in the queue */
+        queueMicrotask(() => {
+
+            // make sure you can't call resolve multipletimes in the same promise
+            if (this.#state !== State.PENDING) return;
 
 
-        this.#value = value;
-        // update the state when the promise resolves
-        this.#state = State.FULFILLED;
+            // for when .then is returning another promise 
+            if(value instanceof MyPromise) {
+                value.then(this.#onSuccessBind, this.#onFailBind);
+                return 
+            }
+
+
+            this.#value = value;
+            // update the state when the promise resolves
+            this.#state = State.FULFILLED;
+
+        })
 
     }
 
     #onFail(value) {
-        // make sure you can't call reject multipletimes in the same promise
-        if (this.#state !== State.PENDING) return;
-        this.#value = value;
-        // update the state when the promise is rejected 
-        this.#state = State.REJECTED;
+        /* once this function resolves the micro task will
+        sure this will run after the current task has completed in the queue */
+        queueMicrotask(() => {
+
+        
+            // make sure you can't call reject multipletimes in the same promise
+            if (this.#state !== State.PENDING) return;
+
+
+            // for when .then is returning another promise 
+            if(value instanceof MyPromise) {
+                value.then(this.#onSuccessBind, this.#onFailBind);
+                return 
+            }
+
+            this.#value = value;
+            // update the state when the promise is rejected 
+            this.#state = State.REJECTED;
+
+        })
     }
 
     then(thenCb, catchCb) {
         /* Each then returns a new promise */
         return new MyPromise((resolve, reject) => {
-            /* push all the callbacks into a  array  */
+            this.#thenCallbacks.push(result => {
+                if(thenCb == null) {
+                    resolve(result);
+                    return;
+                }
+
+                try {
+                    resolve(thenCb(result));
+                } catch (error) {
+                    reject(error);
+                }
+            })
+
+            this.#catchcallbacks.push(result => {
+                if(catchCb == null) {
+                    reject(result);
+                    return;
+                }
+
+                try {
+                    resolve(catchCb(result));
+                } catch (error) {
+                    reject(error);
+                }
+            })
+
+             /* push all the callbacks into a  array  */
             if(thenCb != null) this.#thenCallbacks.push();
             if(catchCb != null) this.#catchcallbacks.push(catchCb);  
-        })
+
         this.#runCallbacks()
+        })
     }
 
     catch(cb) {
@@ -86,9 +141,14 @@ class MyPromise {
     }
 
     finally(cb) {
-
+        return this.then(result => {
+            cb();
+            return result;
+        }, result => {
+            cb();
+            throw result;
+        })
     }
-
 } // end of promise class 
 
 const p = new Promise(() => {
