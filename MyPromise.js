@@ -216,6 +216,7 @@ static any(promises) {
         p.then(resolve).catch(value => {
             rejecectedPromises++;
             error[i] = value
+            // checks to see if all the promises were rejected 
             if(rejecectedPromises === promises.length) {
                 reject(new AgggregateError(error, 'All promises were rejected'))
             }
