@@ -203,7 +203,29 @@ class MyPromise {
         })
     })
   }
+
+
+
+  /* Returns the first one that succeds but only if they all fail  */
+static any(promises) {
+    const errors = [];
+    const rejecectedPromises = 0;
+    return new MyPromise((resolve, reject) => {
+      for (let i = 0; i < promises.length; i++) {
+        const p = promises[i];
+        p.then(resolve).catch(value => {
+            rejecectedPromises++;
+            error[i] = value
+            if(rejecectedPromises === promises.length) {
+                reject(new AgggregateError(error, 'All promises were rejected'))
+            }
+        })
+      }
+    });
+}
 } // end of promise class
+
+
 
 // thorws uncaught error
 class UncaughtPromiseError extends Error {
